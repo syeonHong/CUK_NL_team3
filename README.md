@@ -5,7 +5,7 @@
 # 📘 프로젝트 개요서 (Team Shared Doc)
 
 **프로젝트**: Explicit vs Implicit Learning in Language Models:
-Understanding Learning Behavior & Personalization
+Understanding Learning Behavior --& Personalization--
 
 **기간**: 2025.11.02 ~ 12.05
 
