@@ -78,6 +78,7 @@ Understanding Learning Behavior ~~& Personalization~~
 - 데이터셋 구성
 
 |구분	|언어	|샘플 수|	용도|
+|--|--|--|--|
 |train_explicit.jsonl|	인공어 + 영어|	~2000	|명시적 학습용|
 |train_implicit.jsonl|	인공어 + 영어|	~2000	|암시적 학습용|
 |test.jsonl|	인공어|	~500	|평가 (문법성/일반화)|
