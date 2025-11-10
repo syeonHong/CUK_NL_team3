@@ -2,20 +2,19 @@ model:
   name: gpt2
 
 data:
-  train_path: data/eng/implicit/train.jsonl
-  val_path: data/eng/implicit/val.jsonl
-  test_path: data/eng/implicit/test.jsonl
+  base_path : "C:/Users/User/PycharmProjects/CUK_NL_team3"
+  train_path: base_path + "./data/split_data/train_implicit.jsonl"
+  val_path:   base_path + "./data/split_data/val_implicit.jsonl"
+  test_path:  base_path + "./data/split_data/test_implicit.jsonl"
   condition: implicit
 
 train:
   output_dir: logs/implicit_gpt2
-  epochs: 5
-  batch_size: 4
-  grad_accum: 4
-  lr: 5.0e-5
-  warmup_steps: 500
-  max_length: 256
+  epochs: 9
+  batch_size: 8
+  grad_accum: 2
+  lr: 1.0e-4
+  warmup_steps: 1000
+  max_length: 512
   logging_steps: 50
   weight_decay: 0.01
-  fp16: true
-  bf16: false

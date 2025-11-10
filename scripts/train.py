@@ -1,13 +1,54 @@
-import argparse, yaml, torch
+import argparse, json, yaml, os, sys
 from pathlib import Path
-from transformers import AutoTokenizer, AutoModelForCausalLM, Trainer, TrainingArguments, EarlyStoppingCallback
-from src.data import PromptDataset, build_collator
-from util.metrics import compute_grammaticality_accuracy, compute_perplexity_from_loss, PerplexityCallback
+import torch
+from torch.utils.data import Dataset
+from transformers import AutoTokenizer, AutoModelForCausalLM, Trainer, TrainingArguments, DataCollatorForLanguageModeling
+
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if PROJECT_ROOT not in sys.path:
+    sys.path.append(PROJECT_ROOT)
+
+from scripts.prompts import build_prompt
+from util.metrics import compute_ppl_metrics
+
+class PromptDataset(Dataset):
+    def __init__(self, tokenizer, data_path, condition, max_length=512, ok_only=True, min_len=6, max_len_t=25):
+        self.samples = []
+        self.tok = tokenizer
+        self.max_length = max_length
+        with open(data_path, "r", encoding="utf-8") as f:
+            for line in f:
+                ex = json.loads(line)
+                if ok_only and ex.get("label") not in (None, "ok"):
+                    continue
+                L = ex.get("meta", {}).get("length")
+                if L is not None and not (min_len <= L <= max_len_t):
+                    continue
+                text = build_prompt(ex, condition=condition, for_eval=False)
+                if text:
+                    self.samples.append(text)
+
+    def __len__(self):
+        return len(self.samples)
+
+    def __getitem__(self, idx):
+        enc = self.tok(
+            self.samples[idx],
+            truncation=True,
+            max_length=self.max_length,
+            # padding은 collator가 처리하므로 여기선 지정하지 않음
+        )
+        # ✅ 텐서로 만들지 않음. 리스트/파이썬 int 그대로 반환해야 collator가 pad 가능
+        return {
+            "input_ids": enc["input_ids"],
+            "attention_mask": enc.get("attention_mask", [1] * len(enc["input_ids"])),
+            # ❌ labels는 여기서 넣지 않음 (collator가 자동 생성; mlm=False → LM 학습)
+        }
 
 
 def parse_args():
     p = argparse.ArgumentParser()
-    p.add_argument("--config", type=str, required=True, help="YAML 경로 (base/explicit/implicit)")
+    p.add_argument("--config", type=str, required=True)
     return p.parse_args()
 
 def load_cfg(path):
@@ -18,87 +59,65 @@ def main():
     args = parse_args()
     cfg = load_cfg(args.config)
 
-    # 1) Tokenizer/Model 로드
     tokenizer = AutoTokenizer.from_pretrained(cfg["model"]["name"])
-    # GPT-2 계열은 pad_token이 없어서 에러가 잦음 -> pad_token을 eos로 지정(이유: casual LM에서는 안전)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
-
     model = AutoModelForCausalLM.from_pretrained(cfg["model"]["name"])
 
-    condition = cfg["data"]["condition"]
-
-    # 2) Dataset 로드 (explicit/implicit은 데이터 파일은 같아도 "prompt_builder"로 구분)
     train_ds = PromptDataset(
         tokenizer=tokenizer,
         data_path=cfg["data"]["train_path"],
-        condition=condition,     # "explicit" | "implicit"
-        max_length=cfg["train"]["max_length"]
+        condition=cfg["data"]["condition"],
+        max_length=cfg["train"]["max_length"],
+        ok_only=cfg["data"].get("ok_only", True),
+        min_len=cfg["data"].get("min_len", 6),
+        max_len_t=cfg["data"].get("max_len", 25),
     )
-
+    val_ds = None
     if "val_path" in cfg["data"] and cfg["data"]["val_path"]:
         val_ds = PromptDataset(
             tokenizer=tokenizer,
             data_path=cfg["data"]["val_path"],
-            condition=condition,
-            max_length=cfg["train"]["max_length"]
+            condition=cfg["data"]["condition"],
+            max_length=cfg["train"]["max_length"],
+            ok_only=cfg["data"].get("ok_only", True),
+            min_len=cfg["data"].get("min_len", 6),
+            max_len_t=cfg["data"].get("max_len", 25),
         )
-    else:
-        val_ds = None  # dev가 없을 때는 evaluation_strategy="no"로 학습하거나 내부 split을 구현
 
-    data_collator = build_collator(tokenizer, max_length=cfg["train"]["max_length"])
+    data_collator = DataCollatorForLanguageModeling(tokenizer, mlm=False)
 
-    output_dir = Path(cfg["train"]["output_dir"])
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    # 3) TrainingArguments 설정 (암묵적/명시적 조건 동일 유지 -> 공정성)
     targs = TrainingArguments(
-        output_dir=str(output_dir),
+        output_dir=cfg["train"]["output_dir"],
         num_train_epochs=cfg["train"]["epochs"],
         per_device_train_batch_size=cfg["train"]["batch_size"],
-        per_device_eval_batch_size=cfg["train"]["batch_size"],
         gradient_accumulation_steps=cfg["train"]["grad_accum"],
         learning_rate=cfg["train"]["lr"],
         warmup_steps=cfg["train"]["warmup_steps"],
-
-        eval_strategy="steps" if val_ds is not None else "no",
-        eval_steps=100,
-        save_strategy="steps",
-        save_steps=500,
-        save_total_limit=3,
-        load_best_model_at_end=True if val_ds is not None else False,
-        metric_for_best_model="loss",
-
-        logging_dir=str(output_dir / "logs"),
+        eval_strategy="epoch" if val_ds is not None else "no",
+        save_strategy="epoch" if val_ds is not None else "steps",
         logging_steps=cfg["train"]["logging_steps"],
-        report_to=["tensorboard"],
-
+        save_total_limit=2,
         fp16=cfg["train"].get("fp16", False),
         bf16=cfg["train"].get("bf16", False),
         weight_decay=cfg["train"].get("weight_decay", 0.01),
-        max_grad_norm=1.0,
-
-        seed=42,
-        dataloader_num_workers=0,
-        dataloader_pin_memory=False
+        report_to=["tensorboard"],
+        load_best_model_at_end=True if val_ds is not None else False,
+        metric_for_best_model="eval_loss",
     )
 
-    # 4) Trainer
     trainer = Trainer(
         model=model,
         args=targs,
         train_dataset=train_ds,
         eval_dataset=val_ds,
         data_collator=data_collator,
-        processing_class=tokenizer,
-        callbacks=[EarlyStoppingCallback(early_stopping_patience=3),
-                   PerplexityCallback()] if val_ds else []
+        tokenizer=tokenizer,
+        compute_metrics=compute_ppl_metrics if val_ds is not None else None,
     )
 
     trainer.train()
-    final_path = output_dir / "final_model"
-    trainer.save_model(str(final_path))
-    tokenizer.save_pretrained(str(final_path))
+    trainer.save_model(cfg["train"]["output_dir"])
 
 if __name__ == "__main__":
     main()

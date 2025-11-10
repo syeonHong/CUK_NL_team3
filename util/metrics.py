@@ -1,31 +1,33 @@
+# -*- coding: utf-8 -*-
+"""
+compute_metrics: HuggingFace Trainer가 evaluation 시 호출
+- eval_loss를 받아 PPL(perplexity)로 변환하여 반환.
+- implicit-ins 논문처럼 eval loss -> PPL 비교를 명확히 기록하기 위함.
+"""
+
 import math
-import numpy as np
-from transformers import TrainerCallback
+
 def compute_ppl_metrics(eval_pred):
-    # HF Trainer는 eval_loss를 넘겨주지 않으므로, 통상 metrics_callback에서 가져오거나
-    # 여기서는 placeholder로 남겨둠. (Trainer가 loss를 dict로 줄 때 활용)
-    # 단순화: eval_loss를 Trainer가 자동 로깅하면 TB로 확인. 필요한 경우 커스텀 TrainerCallback 사용.
-    # 스켈레톤: 빈 dict 반환
-    return {}
+    """
+    eval_pred: EvalPrediction(loss, logits) 형태
+    Trainer는 일반적으로 eval_loss를 logs에 기록하므로,
+    compute_metrics에서 직접 전달받지는 않음.
+    따라서 eval_pred.predictions가 있을 때 손실 계산 대신,
+    logs에 기록된 loss를 이용해 PPL 계산하는 버전.
+    """
+    # eval_pred에는 (predictions, labels) 또는 (loss, logits) 등 다양하게 올 수 있으므로
+    # 안전하게 placeholder로 둠
+    metrics = {}
 
-def compute_grammaticality_accuracy(pair_results):
-    correct = 0
-    total = 0
+    # Trainer가 eval_loss를 log dict로 넘겨주는 경우
+    if isinstance(eval_pred, dict) and "eval_loss" in eval_pred:
+        loss = eval_pred["eval_loss"]
+        metrics["eval_loss"] = loss
+        try:
+            metrics["eval_ppl"] = math.exp(loss)
+        except OverflowError:
+            metrics["eval_ppl"] = float("inf")
 
-    for pair_id, results in pair_results.items():
-        if "ok" in results and "violation" in results:
-            continue
-        total += 1
-        if results["ok"] < results["violation"]:
-            correct += 1
-    return correct / total if total > 0 else 0.0
-
-def compute_perplexity_from_loss(loss):
-    return math.exp(loss)
-
-class PerplexityCallback(TrainerCallback):
-    def on_evaluate(self, args, state, control, metrics, **kwargs):
-        if "eval_loss" in metrics:
-            ppl = math.exp(metrics["eval_loss"])
-            metrics["eval_perplexity"] = ppl
-            print(f"\n[Eval] Perplexity: {ppl:.4f}\n")
+    # Trainer 내부에서 compute_metrics 호출 시, 일반적으로 (predictions, labels)
+    # 만 전달되므로, 위 케이스 외에는 빈 dict 반환
+    return metrics
