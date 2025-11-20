@@ -17,13 +17,26 @@ By 류재형
 - run_extract.py:
     역할: 1단계 (전처리).
     Simple Wikipedia 덤프 파일(*.xml.bz2)을 입력받아, 정규 표현식(Regex)을 사용해 위키 마크업을 제거하고 순수 텍스트 아티클(wiki_extracted.txt)을 추출합니다.
-    + 위키 마크업이 완벽하게 지워지지 않아 잔여물이 존재합니다. 이는 simple_wiki_parser.py에서 마저 필터링 됩니다.
+    + 위키 마크업이 완벽하게 지워지지 않아 잔여물이 존재합니다. 이는 pre_filter.py에서 마저 필터링 됩니다.
 
-- simple_wiki_parser.py:
+- simple_wiki_parser.py:(!!!이 코드는 사용되지 않습니다. pre_filter와 create_pairs로 나뉘었습니다.!!!)
     역할: 2단계 (영어 데이터 생성).
     wiki_extracted.txt 파일을 읽어들입니다.
     spaCy를 사용해 문장을 파싱하고, 설정된 필터(잔여물 제거, 6~25 토큰 길이, 단순 SVO 구조)를 통과하는 문장만 선별합니다.
     정상 문장(label: ok)과 어순이 교란된 문장(label: violation) 쌍을 생성하여 english_annotated_pairs.jsonl로 저장합니다.
+
+- pre_filter.py:
+    역할: 1.5단계 (전처리 및 후보군 선별).
+    wiki_extracted.txt 파일을 읽어들입니다. 속도 향상을 위해 무거운 구문 분석(Parser) 없이 가벼운 파이프라인을 사용합니다.
+    잔여 마크업 제거, 문장 분리, 길이 필터링(6~25 토큰)을 수행하여 SVO 분석에 적합한 후보 문장들을 candidate_sentences.txt로 저장합니다.
+    + 이 코드에서 길이 필터링이 완벽하게 되지 않아 create_pairs.py에서 다시 필터링합니다.
+ 
+- create_pairs.py:
+    역할: 2단계 (영어 데이터 생성).
+    정제된 candidate_sentences.txt를 입력받습니다.
+    spaCy의 의존 구문 분석(Dependency Parsing)을 통해 단순 SVO 구조를 가진 문장만 엄선합니다.
+    정상 문장(label: ok)과 어순이 교란된 문장(label: violation) 쌍을 생성하여 english_annotated_pairs.jsonl로 저장합니다.
+    + 이 코드마저 길이 필터링이 완벽하게 되지 않아 build_datasets.py에서 최종적으로 필터링합니다.
 
 - artlang_generator.py:
     역할: 2단계 (인공어 데이터 생성).
@@ -33,7 +46,7 @@ By 류재형
 - build_datasets.py:
     역할: 3단계 (최종 데이터셋 구축).
     english...jsonl과 artlang...jsonl 파일을 로드합니다.
-    요청된 조건(영어/인공어 분리, 명시적/암시적 분리)에 따라 데이터를 가공하고 셔플하여 최종 5개의 데이터셋 파일을 생성합니다.
+    요청된 조건(영어/인공어 분리, 명시적/암시적 분리)에 따라 데이터를 가공하고 셔플하여 Train/Dev/Test 비율(8:1:1)에 맞춰 최종 데이터셋 파일들을 분할 및 생성합니다.
 
 
 -----
