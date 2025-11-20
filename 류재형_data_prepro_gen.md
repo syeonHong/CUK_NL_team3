@@ -19,11 +19,14 @@ By 류재형
     Simple Wikipedia 덤프 파일(*.xml.bz2)을 입력받아, 정규 표현식(Regex)을 사용해 위키 마크업을 제거하고 순수 텍스트 아티클(wiki_extracted.txt)을 추출합니다.
     + 위키 마크업이 완벽하게 지워지지 않아 잔여물이 존재합니다. 이는 pre_filter.py에서 마저 필터링 됩니다.
 
-- simple_wiki_parser.py:(!!!이 코드는 사용되지 않습니다. pre_filter와 create_pairs로 나뉘었습니다.!!!)
+(!!!이 코드는 사용되지 않습니다. pre_filter와 create_pairs로 나뉘었습니다.!!!)
+- simple_wiki_parser.py:
     역할: 2단계 (영어 데이터 생성).
     wiki_extracted.txt 파일을 읽어들입니다.
     spaCy를 사용해 문장을 파싱하고, 설정된 필터(잔여물 제거, 6~25 토큰 길이, 단순 SVO 구조)를 통과하는 문장만 선별합니다.
     정상 문장(label: ok)과 어순이 교란된 문장(label: violation) 쌍을 생성하여 english_annotated_pairs.jsonl로 저장합니다.
+  
+(!!!이 코드는 사용되지 않습니다. pre_filter와 create_pairs로 나뉘었습니다.!!!)
 
 - pre_filter.py:
     역할: 1.5단계 (전처리 및 후보군 선별).
