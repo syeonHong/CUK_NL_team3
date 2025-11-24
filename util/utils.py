@@ -1,10 +1,9 @@
-# src/utils.py
-import math, random, numpy as np, torch
+import math, random, numpy as np, torch, sys
 
 def require_cuda():
     if not torch.cuda.is_available():
         raise SystemError("❌ GPU not detected. CPU is required by spec.")
-    print(f"✅ GPU detected: {torch.cuda.get_device_name(0)}")
+    print(f"✅ GPU detected: {torch.cuda.get_device_name(0)}", file=sys.stderr, flush=True)
 
 def set_seed(seed: int = 42):
     random.seed(seed)

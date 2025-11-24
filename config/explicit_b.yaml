@@ -1,0 +1,19 @@
+model:
+  name: gpt2
+
+data:
+  train_path: "C:/Users/User/PycharmProjects/CUK_NL_team3/data/train_arla_explicit.jsonl"
+  val_path: "C:/Users/User/PycharmProjects/CUK_NL_team3/data/dev_arla_explicit.jsonl"
+  test_path: "C:/Users/User/PycharmProjects/CUK_NL_team3/data/test_arla.jsonl"
+  condition: explicit_b
+
+train:
+  output_dir: model/explicit_b_gpt2
+  epochs: 9
+  batch_size: 8
+  grad_accum: 2
+  lr: 1.0e-4
+  warmup_steps: 1000
+  max_length: 512
+  logging_steps: 50
+  weight_decay: 0.01
