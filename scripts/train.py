@@ -1,3 +1,4 @@
+# tensorboard --logdir logs/explicit_gpt2/logs
 import argparse, yaml, torch
 from pathlib import Path
 from transformers import AutoTokenizer, AutoModelForCausalLM, Trainer, TrainingArguments, EarlyStoppingCallback
