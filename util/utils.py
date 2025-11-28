@@ -1,19 +1,30 @@
-import math, random, numpy as np, torch, sys
+import math
+import torch
+import sys
 
-def require_cuda():
-    if not torch.cuda.is_available():
-        raise SystemError("❌ GPU not detected. CPU is required by spec.")
-    print(f"✅ GPU detected: {torch.cuda.get_device_name(0)}", file=sys.stderr, flush=True)
 
-def set_seed(seed: int = 42):
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(seed)
+def pll(model, tok, text, device, max_length=512):
+    """
+    프롬프트 전체에 대한 평균 log p(= -loss) 계산.
+    """
+    with torch.no_grad():
+        ids = tok(
+            text,
+            return_tensors="pt",
+            truncation=True,
+            max_length=max_length,
+        ).to(device)
+        out = model(**ids, labels=ids["input_ids"])
+        loss = out.loss.item()
+        return -loss
 
-def loss_to_ppl(loss: float) -> float:
-    try:
-        return float(math.exp(loss))
-    except OverflowError:
-        return float("inf")
+
+def key_from_meta(row):
+    """
+    pair_id가 없을 때 ok/vi 매칭에 쓸 메타 키 생성.
+    """
+    meta = row.get("meta", {})
+    keys = []
+    for k, v in meta.items():
+        keys.append(f"{k}:{v}")
+    return "|".join(keys)

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+_DEBUG_SHOWN = False
 # 규칙카드 A (기술형)
 EXPLICIT_RULE_CARD_A = """[RULES]
 1) SOV word order (Subject–Object–Verb).
@@ -87,3 +87,46 @@ def build_prompt(
         raise ValueError(f"Unknown task_type: {task_type}")
 
     return prompt
+
+
+def build_grammar_eval_prompts(
+    ok_ex: dict,
+    vi_ex: dict,
+    condition: str,
+):
+    global _DEBUG_SHOWN
+
+    condition = (condition or "").lower()
+
+    ok_prompt = build_prompt(
+        ok_ex,
+        condition=condition,
+        for_eval=False,
+        task_type="grammaticality",
+    )
+    vi_prompt = build_prompt(
+        vi_ex,
+        condition=condition,
+        for_eval=False,
+        task_type="grammaticality",
+    )
+
+    if not _DEBUG_SHOWN:
+        print("========== 프롬프트 검증 디버그 ==========")
+        print(f"- 평가 조건(condition): {condition}")
+        if condition == "explicit_b":
+            print("  → 규칙카드 B(설명형) + 예시 + 문법 판단(Task) 프롬프트로 평가합니다.")
+        elif condition == "implicit":
+            print("  → 규칙카드 없이 예시만 주고, 문법 판단(Task) 프롬프트로 평가합니다.")
+        else:
+            print("  → 정의되지 않은 condition 값입니다. (implicit / explicit_b 권장)")
+
+        print("\n[OK 문장 프롬프트 예시]")
+        print(ok_prompt)
+        print("\n[VIOLATION 문장 프롬프트 예시]")
+        print(vi_prompt)
+        print("=========================================\n")
+        _DEBUG_SHOWN = True
+
+    return ok_prompt, vi_prompt
+
