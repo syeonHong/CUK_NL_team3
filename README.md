@@ -1,200 +1,188 @@
 # CUK_NL_team3
 2025-2 Natural Language Processing term project by team 3
 
+# 1. Project Overview
 
-# 📘 프로젝트 개요서 (Team Shared Doc)
+본 프로젝트는 명시적(explicit) 학습 / 암시적(implicit) 학습 / In-Context Learning(ICL) 조건이
+GPT2 기반 언어모델의 규칙 내재화 능력 및 일반화 능력에 미치는 영향을 비교하는 실험이다.
 
-**프로젝트**: Explicit vs Implicit Learning in Language Models:
-Understanding Learning Behavior ~~& Personalization~~
+총 3개의 실험으로 구성된다:
 
-**기간**: 2025.11.02 ~ 12.05
+1. E1 — Fine-tuning Efficiency
 
-**출처**:
+2. E2 — Grammaticality Judgment
 
-- Ma & Xu (2025), Implicit In-Context Learning: Evidence from Artificial Language Experiments
+  - BLiMP-style (문법성 판단, minimal pairs)
 
-- OpenAI (2025), TrueReason: An Exemplar Personalized Learning System Integrating Reasoning with Foundational Models > 후속 연구, future work로 
+  - 5지선다 문법 판단
 
-## 🎯 1️⃣ 프로젝트 목적 (Project Goal)
+  - Surprisal Peak Plot (문법 오류 위치 localizing)
 
-본 프로젝트는 언어모델(ex: GPT-2 small) 을 대상으로
-명시적(Explicit) 학습과 암시적(Implicit) 학습의 차이가
-모델의 학습 효율·일반화 능력·문맥적 추론 능력(ICL) 에 어떤 영향을 미치는지를 실험적으로 검증하고,
-~~그 결과를 기반으로 사용자 맞춤형 학습 추천 시스템 프로토타입을 제시하는 것이 목표입니다.~~
+  - Prompting variation (explicit-card / explicit-explanation / implicit)
 
-### 세부 목적
+3. E3 — In-context Generalization (0,1,2,4-shot ICL)
 
-**[A] 명시적 vs 암시적 학습 비교 실험**
+# 2. Repository Structure
 
-규칙 설명이 주어지는 경우(Explicit)와,
-예시만 제공되는 경우(Implicit)에서 모델의 학습곡선(PPL), 정확도, 일반화 성능 비교
+zip에서 확인한 구조를 기반으로 main 기준으로 이미 정리된 형태로 문서화했음.
+feat# 폴더는 실험 중간 산출물이며, 최종 코드는 main/ 하위에 통합된다는 가정으로 정리.
 
-**[B-1] In-Context Learning(ICL) 검증**
-
-학습된 모델이 프롬프트 예시(k-shot)만으로 새로운 문법 규칙을 추론할 수 있는지 확인
-
-~~**[B-2] 개인화 추천 프로토타입 (선택적 확장)**~~
-
-~~학습 성향(명시형/암시형/혼합형)을 기반으로
-사용자에게 최적의 학습 모드를 추천하는 밴딧 알고리즘 기반 웹 데모 구현~~
-
-## ⚙️ 2️⃣ 프로젝트 진행 구조 (How it works)
-| 단계	| 주요 목표 |	입력  데이터 |	모델/도구 |	결과물 |
-|------|------|--------|--------|--------|
-| A. 학습 비교 실험	|Explicit vs Implicit fine-tuning|	인공어 + 영어 JSONL|	GPT-2 small|	PPL/Accuracy 그래프|
-|B-1. ICL 검증|	0,1,2,4-shot 문맥 평가|	인공어|	GPT-2 small (freeze)|	ICL 곡선 (Accuracy vs k)|
-|~~B-2. 개인화 추천 (웹 데모)~~|	~~학습자 유형 기반 모드 추천~~|	~~사용자 입력 로그~~	|~~Streamlit + Bandit 알고리즘	웹 시연~~| ~~앱 + 추천 결과 로그~~|
-리포트/발표|	결과 통합·해석	|전체 실험 결과|	Word/PPT	|보고서 및 발표자료|
-
-## 🧱 3️⃣ 세부 실험 설계
-#### (1) 데이터 구조
-
-- 형식: .jsonl (한 줄당 하나의 문장 샘플)
-
-- 공통 Key
-
-```json
-{
-  "id": "exp_0001",
-  "type": "explicit",
-  "prompt": "Rule: Subject-Object-Verb order. Example:",
-  "text": "li neep lu vode klin noyka",
-  "label": "ok",
-  "meta": {
-    "rule": "word_order",
-    "language": "artificial"
-  }
-}
-```
-
-> Key	설명
-- **id**	샘플 고유 ID
-- **type**	explicit / implicit
-- **prompt**	규칙 설명 문장 (implicit일 땐 비워둠)
-- **text**	학습 문장
-- **label**	정답(“ok”) / 위반(“violation”)
-- **meta**	규칙, 언어 종류, 문장 길이 등 부가정보
-
-- 데이터셋 구성
-
-|구분	|언어	|샘플 수|	용도|
-|--|--|--|--|
-|train_explicit.jsonl|	인공어 + 영어|	~2000	|명시적 학습용|
-|train_implicit.jsonl|	인공어 + 영어|	~2000	|암시적 학습용|
-|test.jsonl|	인공어|	~500	|평가 (문법성/일반화)|
-
-#### (2) 모델 구조 (예시)
-
-- 모델: GPT-2 small (pretrained)
-
-> Fine-tuning 조건
-- Optimizer: AdamW
-- Learning rate: 5e-5
-- Weight decay: 1e-2
-- Epochs: 8~10
-- Scheduler: cosine
-
-> 평가 지표
-- Perplexity (PPL)
-- Grammaticality Accuracy
-- Generalization (unseen combinations)
-
-#### (3) ICL 평가 (B-1)
-|조건	|프롬프트 예시	|목표|
-|---|---|---|
-|0-shot	|문법성 판단만 요청	|baseline|
-|1-shot	|예시 1개	|context 학습 시작|
-|2-shot	|예시 2개	|문맥 패턴 강화|
-|4-shot	|예시 4개	|구조적 일반화 확인|
-
->예시 프롬프트 예:
-
-li neep lu vode klin → grammatical
-
-li neep klin lu vode → ungrammatical
-
-Test: lu vode li neep klin → ?
-
-#### (4) 개인화 추천 시스템 (B-2)
-
-- 입력: 학습자 진단 결과 (정답률, 반응시간, 오류유형)
-
-- 유형 분류: 규칙형 / 문맥형 / 혼합형 / 불안정형
-
-- 추천 알고리즘: Thompson Sampling Bandit
-
-reward = 0.5 * Δaccuracy + 0.3 * Δgeneralization - 0.2 * Δreaction_time
-
-
-> UI 구현: Streamlit
-
-- 명시/암시 학습 모드 선택 버튼
-
-- 실시간 보상 변화 그래프
-
-- 사용자 학습 유형 표시
-
-## 📅 4️⃣ 프로젝트 일정 및 담당자
-|기간|	파트|	담당자|	주요 산출물|
-|--|--|--|--|
-|~11/05|	데이터 구축	재형	|인공어 생성기 + 영어 JSONL 세트
-|~11/15|	모델 학습(A)	|한종, 유진|	GPT-2 explicit/implicit fine-tuning 결과|
-|~11/22|	ICL 실험(B-1)	|주은|	k-shot 곡선, ICL 일반화 분석|
-|~~11/29~~|	~~웹 데모(B-2)~~	|~~유진~~|	~~Streamlit + Bandit 데모~~|
-|~12/05|	총괄·리포트·발표	|승연|	보고서, 발표자료, 전체 통합|
-## 📊 5️⃣ 예상 결과물 및 파일 구조
-```json
-project/
-├── data/
-│   ├── artificial/
-│   │   ├── train_explicit.jsonl
-│   │   ├── train_implicit.jsonl
-│   │   └── test.jsonl
-│   └── english/
-│       ├── train_explicit_en.jsonl
-│       └── train_implicit_en.jsonl
+main/
 │
-├── models/
-│   ├── gpt2_explicit/
-│   │   └── best.pth
-│   └── gpt2_implicit/
-│       └── best.pth
+├── config/                      # 실험 설정 YAML
+│   ├── base.yaml
+│   ├── explicit.yaml
+│   └── implicit.yaml
+│
+├── data/
+│   ├── dataset.zip              # ENG / ArLang paired datasets
+│   └── split.py                 # train/valid/test split + OOD generation
 │
 ├── src/
-│   ├── data_gen.py
-│   ├── train.py
-│   ├── eval.py
-│   ├── icl_eval.py
-│   ├── bandit_demo.py >> 삭제
-│   └── app_streamlit.py >> 삭제
+│   ├── artlang_generator.py     # 인공언어(SOV) 생성기
+│   ├── build_datasets.py        # Explicit / Implicit dataset builder
+│   ├── create_pairs.py          # OK / Violation minimal pairs 생성
+│   ├── dataloader.py            # PyTorch Dataset/Loader
+│   ├── model.py                 # GPT2 기반 LM wrapper
+│   ├── prompts.py               # Prompt templates (explicit/implicit)
+│   ├── run_ft.py                # Fine-tuning 실행 (E1)
+│   ├── run_eval_e2.py           # E2 BLiMP/PLL/5지선다/Surprisal
+│   ├── run_icl.py               # E3 ICL 0–4 shot evaluation
+│   └── utils.py                # 공통 함수 (tokenizer, logger, seed)
 │
-├── results/
-│   ├── ppl_curve.png
-│   ├── icl_curve.png
-│   └── eval_summary.csv
+├── scripts/
+│   ├── train.py                 # E1 학습 실행 스크립트
+│   ├── evaluate_methods2.py     # E2 실행
+│   ├── plot_learning_curves.py  # E1 PPL 그래프 생성
+│   └── plot_surprisal.py        # E2 surprisal 시각화
 │
-└── report/
-    ├── final_report.docx
-    └── slides.pptx
-```
+└── utils/
+    ├── metrics.py               # PLL, accuracy, surprisal 계산
+    └── helpers.py               # 파일 처리, config loader
 
-## 🧩 6️⃣ 기대 효과
+#️⃣ 3. Installation
+conda create -n nlproj python=3.10
+conda activate nlproj
+pip install -r requirements.txt
 
-- 실험적:
 
-명시/암시 학습 비교를 통해 AI 언어모델의 학습 전략 차이를 실증적으로 검증
+주요 패키지:
 
-ICL이 “언어 규칙 내재화”와 유사하게 작동함을 보여줌
+PyTorch
 
-- 응용적:
+Transformers
 
-개인화 학습 추천(명시적 vs 암시적)을 적용한 AI 튜터 설계 근거 제시
+SentencePiece
 
-실험 연구를 실제 AI 서비스 프로토타입으로 확장
+matplotlib / seaborn
 
-## ✅ 요약 문장 
+pandas
 
-우리 프로젝트는 언어모델의 학습 방식(Explicit vs Implicit) 이
-언어 일반화 및 문맥 추론(ICL) 에 어떤 차이를 만드는지를 검증하고,
-그 차이를 활용해 학습자 맞춤형 AI 학습 추천 시스템으로 확장하는 것을 목표로 한다.
+#️⃣ 4. Dataset Preparation
+1) Artificial Language (ArLa)
 
+Zipf 기반 어휘 샘플링
+
+규칙 기반 SOV 생성
+
+OK / Violation minimal pairs 생성
+
+2) English (SVO)
+
+Simple English Wikipedia 기반
+
+SpaCy 의존구문 필터링
+
+SVO 문장만 추출 후 minimal pair 생성
+
+데이터 준비 실행
+python src/build_datasets.py --config config/base.yaml
+python src/create_pairs.py
+python data/split.py
+
+#️⃣ 5. Experiments
+🔵 E1 — Fine-tuning Efficiency
+목적
+
+Explicit vs Implicit 학습 조건에서 GPT2가 얼마나 빠르고 안정적으로 규칙에 적응하는가(PPL 수렴) 비교.
+
+실행
+python scripts/train.py --config config/explicit.yaml
+python scripts/train.py --config config/implicit.yaml
+
+출력물
+
+outputs/e1/logs/
+
+outputs/e1/ppl_curves.png
+
+🟣 E2 — Grammaticality Judgment (여러 버전 포함)
+포함된 하위 실험
+
+BLiMP-style (minimal pair PLL ranking)
+
+5지선다 문법 판단
+
+Surprisal Peak Plot — 문법 오류가 발생하는 지점의 surprisal 상승 체크
+
+Prompt variation tuning
+
+explicit-card (“규칙카드”)
+
+explicit-explanation (“설명형”)
+
+implicit (“문장만 제시”)
+
+실행
+python src/run_eval_e2.py
+
+출력물
+
+outputs/e2/accuracy.csv
+
+outputs/e2/surprisal_plots/*.png
+
+outputs/e2/multiple_choice_results.json
+
+🟢 E3 — In-context Learning (0/1/2/4-shot)
+목적
+
+학습된 모델이 문맥만 보고 규칙을 추론할 수 있는지 확인.
+
+실행
+python src/run_icl.py --shots 0
+python src/run_icl.py --shots 1
+python src/run_icl.py --shots 2
+python src/run_icl.py --shots 4
+
+#️⃣ 6. Results Overview
+
+(자세한 수치는 Evaluation Report에서 제공)
+
+E1: explicit 조건은 초기 수렴이 빠르고, implicit 조건은 안정적이며 자연스러운 규칙 내재화 경향
+
+E2: Prompting 제공 여부가 문법성 판단 정확도에 큰 영향
+
+E3: implicit 학습 모델은 ICL에서 성능이 더 상승하는 경향
+
+#️⃣ 7. Reproducibility
+
+모든 실험은 seed 고정
+
+config 파일 기반으로 실험 반복 가능
+
+데이터 경로는 config/*.yaml에서 수정 가능
+
+#️⃣ 8. Contributors (Team 3 / 가톨릭대학교)
+
+📌 E1 / E2(implicit–explicit prompting) — 유진님
+
+📌 E2(BLiMP / 5지선다 / Surprisal) — 한종님
+
+📌 E1 / ArLa generation / infrastructure — 홍키쿠키쿠
+
+📌 Code integration & documentation — 전원 기여
+
+#️⃣ 9. License
+
+MIT License (필요시)
