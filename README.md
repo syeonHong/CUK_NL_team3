@@ -18,7 +18,7 @@ GPT2 기반 언어모델의 규칙 내재화 능력 및 일반화 능력에 미�
 
 
 # Repository Structure
-
+```
 main/
 │
 ├── config/
@@ -51,7 +51,7 @@ main/
 └── utils/
     ├── metrics.py
     └── helpers.py
-
+```
 
 # Installation
 
@@ -91,13 +91,15 @@ E1 — Fine-tuning Efficiency
 목적: Explicit vs Implicit 학습 조건에서 GPT2가 얼마나 빠르고 안정적으로 규칙에 적응하는가(PPL 수렴) 비교.
 
 실행:
+```
 python scripts/train.py --config config/explicit.yaml
 python scripts/train.py --config config/implicit.yaml
-
+```
 출력물:
+```
 outputs/e1/logs/
 outputs/e1/ppl_curves.png
-
+```
 
 E2 — Grammaticality Judgment
 포함된 하위 실험:
@@ -107,23 +109,27 @@ E2 — Grammaticality Judgment
 - Prompt variation (explicit-card / explicit-explanation / implicit)
 
 실행:
+```
 python src/run_eval_e2.py
+```
 
 출력물:
+```
 outputs/e2/accuracy.csv
 outputs/e2/surprisal_plots/*.png
 outputs/e2/multiple_choice_results.json
-
+```
 
 E3 — In-context Learning (0/1/2/4-shot)
 목적: 학습된 모델이 문맥만 보고 규칙을 추론할 수 있는지 확인.
 
 실행:
+```
 python src/run_icl.py --shots 0
 python src/run_icl.py --shots 1
 python src/run_icl.py --shots 2
 python src/run_icl.py --shots 4
-
+```
 
 # Results Overview
 
@@ -142,8 +148,8 @@ python src/run_icl.py --shots 4
 
 
 # Contributors (Team 3 / 가톨릭대학교)
-
-- E1 / E2(implicit–explicit prompting) — 유진님
-- E2(BLiMP / 5지선다 / Surprisal) — 한종님
-- E1 / ArLa generation / infrastructure — 홍키쿠키쿠
-- Code integration & documentation — 전원 기여
+- Data generation(ArLa) / processing - 류재형
+- E1 / E2(implicit–explicit prompting) - 이유진
+- E1 / E2(BLiMP / 5지선다 / Surprisal) - 최한종
+- E3 (n-shot) - 장주은
+- Code integration & documentation — 홍승연
