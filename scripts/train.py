@@ -6,6 +6,18 @@ from src.data import PromptDataset, build_collator
 from util.metrics import compute_grammaticality_accuracy, compute_perplexity_from_loss, PerplexityCallback
 
 
+# PPL 계산 콜백 (로그 확인용)
+class PerplexityCallback(EarlyStoppingCallback):
+    def on_evaluate(self, args, state, control, metrics, **kwargs):
+        if "eval_loss" in metrics:
+            loss = metrics["eval_loss"]
+            try:
+                ppl = torch.exp(torch.tensor(loss)).item()
+                print(f"\n[Epoch {state.epoch:.2f}] Eval PPL: {ppl:.4f}")
+            except OverflowError:
+                print(f"\n[Epoch {state.epoch:.2f}] Eval PPL: Infinity")
+
+
 def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument("--config", type=str, required=True, help="YAML 경로 (base/explicit/implicit)")
