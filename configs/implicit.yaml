@@ -2,9 +2,9 @@ model:
   name: gpt2
 
 data:
-  train_path: data/eng/implicit/train.jsonl
-  val_path: data/eng/implicit/val.jsonl
-  test_path: data/eng/implicit/test.jsonl
+  train_path: data/train_eng_implicit.jsonl
+  val_path: data/dev_eng_implicit.jsonl
+  test_path: data/test_eng.jsonl
   condition: implicit
 
 train:

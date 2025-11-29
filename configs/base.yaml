@@ -2,9 +2,9 @@ model:
   name: gpt2  # gpt2 / distilgpt2 / EleutherAI/gpt-neo-125M 등
 
 data:
-  train_path: data/eng/explicit/train.jsonl  # explicit/implicit에서 덮어씀
-  val_path: data/eng/explicit/val.jsonl
-  test_path: data/eng/explicit/test.jsonl
+  train_path: data/train_eng_explicit.jsonl  # explicit/implicit에서 덮어씀
+  val_path: data/dec_eng_explicit.jsonl
+  test_path: data/test_eng.jsonl
   condition: implicit  # explicit | implicit
 
 train:

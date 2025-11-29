@@ -2,9 +2,9 @@ model:
   name: gpt2
 
 data:
-  train_path: data/eng/explicit/train.jsonl
-  val_path: data/eng/explicit/val.jsonl
-  test_path: data/eng/explicit/test.jsonl
+  train_path: data/train_eng_explicit.jsonl
+  val_path: data/dev_eng_explicit.jsonl
+  test_path: data/test_eng.jsonl
   condition: explicit
 
 train:
