@@ -4,6 +4,41 @@
 **NOTE: 중간중간 결과 Graph 삽입 예정 **
 
 
+## #️⃣ 1. Project Overview
+
+본 프로젝트는 GPT2 기반 언어모델을 대상으로
+명시적(explicit) / 암시적(implicit) 학습 방식 / ICL(few-shot) 간
+규칙 내재화 및 일반화 능력의 차이를 분석하는 연구이다.
+
+총 3개의 메인 실험:
+
+- E1 — Fine-tuning Efficiency
+- E2 — Grammaticality Judgment (여러 버전 포함)
+- E3 — In-context Learning (0–4-shot)
+
+
+
+## #️⃣ 2. Repository Structure
+```
+main/
+│
+├── config/ # 실험 구성 YAML
+├── data/ # dataset zip 및 split 코드
+├── src/
+│ ├── artlang_generator.py # 인공언어 생성기
+│ ├── build_datasets.py # ENG/SOV explicit/implicit dataset 생성
+│ ├── create_pairs.py # OK/Violation minimal pairs 생성
+│ ├── dataloader.py # PyTorch Dataset
+│ ├── model.py # GPT2 wrapper model
+│ ├── prompts.py # explicit/implicit prompt card
+│ ├── run_ft.py # E1 파인튜닝 코드
+│ ├── run_eval_e2.py # E2(BLiMP, 5-choice, surprisal)
+│ ├── run_icl.py # E3 ICL 코드
+│ └── utils.py # 공통 함수
+│
+├── scripts/ # 그래프, 결과 정리 스크립트
+└── utils/ # metrics 및 helper
+```
 
 ## #️⃣ 3. File Description
 
