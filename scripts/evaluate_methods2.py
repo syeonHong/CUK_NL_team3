@@ -15,7 +15,7 @@ PREFIX_PROMPT = "Sentence: "
 # 경로가 없으면 자동으로 'gpt2'를 다운로드하여 실행합니다.
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
-MODEL_PATH = os.path.join(current_dir, "..", "logs", "explicit_gpt2", "final_model")
+MODEL_PATH = os.path.join(current_dir, "..", "logs", "implicit_gpt2", "final_model")
 
 
 # ==============================================================================
@@ -159,21 +159,18 @@ if __name__ == "__main__":
 
     # --- 테스트 데이터 ---
 
-    # Case A: 기본적인 SVO 어순
-    good_sent = "The dog eats the bone."
-    bad_sent = "Eats the dog the bone."
+    good_sent = "zuna blono drako brulo troiso troiso lu brip troise neime troise li droz ko plom lu"
+    bad_sent = "zuna blono drako brulo troiso troiso lu droz brip troise neime troise ko plom li"
 
-    # Case B: 5지선다 보기
     mcq_options = [
-        "Eats the dog the bone.",
-        "The dog eats the bone.",
-        "Bone the dog eats the.",
-        "The eats bone dog.",
-        "Dog the bone eats."
-    ]# 정답 (인덱스 1)
-    correct_option_index = 1  # 0부터 시작하므로 2번째 보기
+        good_sent,  # 정합 SOV → 정답
+        bad_sent,  # SVO → 비정합
+        "lu zuna blono drako brulo troiso troiso droz brip troise neime troise ko plom li",
+        "zuna blono drako brulo troiso troiso droz brip troise neime troise li lu ko plom",
+        "zuna blono drako brulo troiso troiso droz brip troise neime troise ko plom li lu",
+    ]
 
-    # --- 3가지 평가 실행 ---
+    correct_option_index = 0
 
     # 1. BLiMP 평가 (맞는 문장 vs 틀린 문장 승부)
     evaluate_blimp_pair(model, tokenizer, good_sent, bad_sent)
