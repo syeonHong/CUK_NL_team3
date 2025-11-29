@@ -1,7 +1,11 @@
-# tensorboard --logdir logs/explicit_gpt2/logs
+# C
 import argparse, yaml, torch
 from pathlib import Path
 from transformers import AutoTokenizer, AutoModelForCausalLM, Trainer, TrainingArguments, EarlyStoppingCallback
+import os, sys
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if PROJECT_ROOT not in sys.path:
+    sys.path.append(PROJECT_ROOT)
 from src.data import PromptDataset, build_collator
 from util.metrics import compute_grammaticality_accuracy, compute_perplexity_from_loss, PerplexityCallback
 
@@ -18,6 +22,13 @@ def load_cfg(path):
 def main():
     args = parse_args()
     cfg = load_cfg(args.config)
+    print("CUDA available:", torch.cuda.is_available())
+    print("GPU count:", torch.cuda.device_count())
+
+    if torch.cuda.is_available():
+        current_device = torch.cuda.current_device()
+        print("Current device index:", current_device)
+        print("Current device name:", torch.cuda.get_device_name(current_device))
 
     # 1) Tokenizer/Model 로드
     tokenizer = AutoTokenizer.from_pretrained(cfg["model"]["name"])
@@ -92,8 +103,9 @@ def main():
         eval_dataset=val_ds,
         data_collator=data_collator,
         processing_class=tokenizer,
-        callbacks=[EarlyStoppingCallback(early_stopping_patience=3),
-                   PerplexityCallback()] if val_ds else []
+        #callbacks=[EarlyStoppingCallback(early_stopping_patience=3),
+        #           PerplexityCallback()] if val_ds else []
+        callbacks = [PerplexityCallback()] if val_ds else []
     )
 
     trainer.train()
