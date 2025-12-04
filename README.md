@@ -1,7 +1,6 @@
 # CUK_NL_team3
 2025-2 Natural Language Processing term project by team 3
 
-**NOTE: 중간중간 결과 Graph 삽입 예정 **
 
 
 ## #️⃣ 1. Project Overview
