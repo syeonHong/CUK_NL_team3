@@ -1,100 +1,178 @@
 # CUK_NL_team3
-2025-2 Natural Language Processing term project by team 3
 
+2025-2 Natural Language Processing term project (Team 3, Catholic University of Korea)
 
+---
 
-## #️⃣ 1. Project Overview
+## 1. Project Overview
 
-본 프로젝트는 GPT2 기반 언어모델을 대상으로
-명시적(explicit) / 암시적(implicit) 학습 방식 / ICL(few-shot) 간
-규칙 내재화 및 일반화 능력의 차이를 분석하는 연구이다.
+This project investigates how a GPT-2 language model internalizes and generalizes a simple word-order rule under three different learning settings:
 
-총 3개의 메인 실험:
+- **Explicit** fine-tuning (with rule descriptions in prompts)  
+- **Implicit** fine-tuning (no explicit rule, only sentence exposure)  
+- **In-context learning (ICL)** with 0–4 shot examples
 
-- E1 — Fine-tuning Efficiency
-- E2 — Grammaticality Judgment (여러 버전 포함)
-- E3 — In-context Learning (0–4-shot)
+We compare:
 
+- English (SVO) vs. an artificial SOV language (ArLa)  
+- Explicit vs. implicit learning conditions  
+- Fine-tuning vs. ICL performance
 
+Main experiments:
 
-## #️⃣ 2. Repository Structure
-```
+- **E1 — Fine-tuning Efficiency**  
+  - dev PPL curves under explicit / implicit / prompt variations
+- **E2 — Grammaticality Judgment**  
+  - BLiMP-style PLL ranking, 5-choice grammaticality, surprisal analysis
+- **E3 — In-context Learning (0–4 shot)**  
+  - few-shot ICL without parameter updates on ArLa
+
+---
+
+## 2. Repository Structure
+
+```bash
 main/
 │
-├── config/ # 실험 구성 YAML
-├── data/ # dataset zip 및 split 코드
+├── config/                 # YAML configs for experiments
+├── data/                   # Dataset zips and split scripts
 ├── src/
-│ ├── artlang_generator.py # 인공언어 생성기
-│ ├── build_datasets.py # ENG/SOV explicit/implicit dataset 생성
-│ ├── create_pairs.py # OK/Violation minimal pairs 생성
-│ ├── dataloader.py # PyTorch Dataset
-│ ├── model.py # GPT2 wrapper model
-│ ├── prompts.py # explicit/implicit prompt card
-│ ├── run_ft.py # E1 파인튜닝 코드
-│ ├── run_eval_e2.py # E2(BLiMP, 5-choice, surprisal)
-│ ├── run_icl.py # E3 ICL 코드
-│ └── utils.py # 공통 함수
+│   ├── artlang_generator.py   # Artificial language (ArLa, SOV) generator
+│   ├── build_datasets.py      # Build ENG/SOV explicit/implicit datasets
+│   ├── create_pairs.py        # Create OK/Violation minimal pairs
+│   ├── dataloader.py          # PyTorch Dataset & DataLoader
+│   ├── model.py               # GPT-2 wrapper model & loss
+│   ├── prompts.py             # Explicit / implicit prompt templates
+│   ├── run_ft.py              # E1: fine-tuning pipeline
+│   ├── run_eval_e2.py         # E2: BLiMP, 5-choice, surprisal eval
+│   ├── run_icl.py             # E3: 0/1/2/4-shot ICL
+│   └── utils.py               # Shared utility functions
 │
-├── scripts/ # 그래프, 결과 정리 스크립트
-└── utils/ # metrics 및 helper
+├── scripts/                # Plotting & result aggregation scripts
+└── utils/                  # Metrics & helpers
 ```
 
-## #️⃣ 3. File Description
+## 3. File Description
 
-### Dataset 관련
-- build_datasets.py — 영어(SVO)·인공언어(SOV) 기반 explicit/implicit 데이터 구성  
-- create_pairs.py — OK vs Violation minimal pairs 생성  
-- split.py — train/dev/test + OOD split  
+### 3.1 Dataset & Preprocessing
 
-### Model 관련
-- model.py — GPT2 LM + loss 계산  
-- prompts.py — explicit-card, explicit-explanation, implicit prompt template  
-- dataloader.py — tokenization & batch dataloader  
+- `build_datasets.py`  
+  - Builds English (SVO) and ArLa (SOV) datasets.  
+  - Creates explicit / implicit versions by attaching or omitting rule prompts.
 
-### Experiment 코드
-- run_ft.py — E1 fine-tuning 로직  
-- run_eval_e2.py — E2(문법성 판단) 모든 버전 포함  
-- run_icl.py — E3(0/1/2/4-shot ICL)  
+- `create_pairs.py`  
+  - Generates OK vs. Violation minimal pairs for grammaticality judgment.
 
-### 시각화
-- plot_learning_curves.py  
-- plot_surprisal.py  
+- `split.py`  
+  - Splits data into train / dev / test (and OOD, if used).
+
+- `artlang_generator.py`  
+  - Generator for the artificial SOV language (ArLa).  
+  - Controls word order templates, vocabulary, and noise level.
 
 
+### 3.2 Model & DataLoader
 
-## #️⃣ 4. Experiment Structure
+- `model.py`  
+  - GPT-2 language model wrapper.  
+  - Implements forward pass and LM loss for fine-tuning / evaluation.
 
-### 🔵 E1 — Fine-tuning Efficiency
-- explicit vs implicit vs SVO vs SOV 조건 간 PPL 수렴 비교  
-- output: loss/logs, PPL curves  
+- `prompts.py`  
+  - Explicit-card, explicit-explanation, implicit prompt templates.  
+  - Central place to modify rule descriptions and input formats.
 
-### 🟣 E2 — Grammaticality Judgment
-하위 구성:
-- BLiMP-style PLL ranking  
-- 5-choice 문법 판단  
-- Surprisal Peak Plot  
-- Prompt variation (explicit-card, explicit-explanation, implicit)  
-- output: accuracy, ΔPLL, surprisal 시각화  
-
-### 🟢 E3 — ICL (0–4 shot)
-- 학습 없이 few-shot 문맥만으로 규칙 추론하는지 평가  
-- output: shot별 accuracy curve  
+- `dataloader.py`  
+  - Tokenization and PyTorch `Dataset` / `DataLoader` implementation.  
+  - Handles explicit / implicit formatting at batch level.
 
 
+### 3.3 Experiment Pipelines
 
-## #️⃣ 5. How Components Connect
+- `run_ft.py`  
+  - E1: fine-tuning under explicit / implicit and ENG / ArLa conditions.  
+  - Saves checkpoints and training logs (loss / PPL).
 
-- build_datasets.py → create_pairs.py → data/split.py  
-- dataloader.py + model.py  
-- E1/E2/E3 실행 코드가 위 빌딩 블록을 조합  
-- scripts/ 폴더가 결과를 정리·시각화  
+- `run_eval_e2.py`  
+  - E2: grammaticality judgment evaluation.  
+  - BLiMP-style PLL ranking, 5-choice evaluation, surprisal extraction.
+
+- `run_icl.py`  
+  - E3: 0/1/2/4-shot ICL experiments on ArLa.  
+  - Uses PMI-style scoring over natural-language labels.
 
 
+### 3.4 Visualization & Utilities
 
-## #️⃣ 6. Team Members (Team 3 — 가톨릭대학교)
+- `plot_learning_curves.py`  
+  - Plots train / dev PPL and loss curves for E1.
 
-- Dataset / ArLa generation: 류재형
-- E1 / E2 (ArLa): 이유진
-- E1 / E2 (Eng): 최한종
-- E3 (ArLa) : 장주은
-- 통합 / 문서화 / 구조화: 홍승연
+- `plot_surprisal.py`  
+  - Visualizes token-level surprisal peaks for selected sentences.
+
+- `scripts/`  
+  - Additional plotting and result-aggregation scripts (tables, figures).
+
+- `utils/`  
+  - Metrics (e.g., AUC, ECE, ΔPLL) and general helper functions.
+
+---
+
+## 4. Experiment Structure
+
+### E1 — Fine-tuning Efficiency
+
+- Goal: compare dev PPL and convergence across
+  - explicit vs. implicit prompts,
+  - English (SVO) vs. ArLa (SOV),
+  - different explicit prompt styles.
+- Output:
+  - loss / PPL logs,
+  - learning curves.
+
+### E2 — Grammaticality Judgment
+
+- Subtasks:
+  - BLiMP-style PLL ranking (OK vs. Violation),
+  - 5-choice grammaticality on ArLa,
+  - surprisal peak analysis.
+- Output:
+  - accuracy, AUC, ΔPLL,
+  - calibration metrics (e.g., ECE),
+  - surprisal plots.
+
+### E3 — In-Context Learning (0–4 shot, ArLa)
+
+- Goal: test whether GPT-2 can infer the SOV rule from a few in-context examples without parameter updates.
+- Models:
+  - base GPT-2,
+  - ArLa explicit fine-tuned model,
+  - ArLa implicit fine-tuned model.
+- Output:
+  - shot-wise accuracy curves,
+  - error patterns across ICL prompts.
+
+---
+
+## 5. Component Flow
+
+1. Dataset construction  
+   - `artlang_generator.py` → `build_datasets.py` → `create_pairs.py` → `split.py`
+2. Model & DataLoader  
+   - `model.py` + `prompts.py` + `dataloader.py`
+3. Experiments  
+   - E1: `run_ft.py`  
+   - E2: `run_eval_e2.py`  
+   - E3: `run_icl.py`
+4. Analysis & visualization  
+   - `scripts/`, `plot_learning_curves.py`, `plot_surprisal.py`
+
+---
+
+## 6. Team Members (Team 3, CUK)
+
+- Dataset / ArLa generation: 류재형  
+- E1 / E2 (ArLa) : 이유진  
+- E1 / E2 (English): 최한종  
+- E3 (ArLa ICL): 장주은  
+- Integration / documentation / repo structure: 홍승연
+
